@@ -49,7 +49,14 @@ class Game {
     this.obstacles = []; // Initialize the obstacles array
     this.obstacleTimeout = null; // For managing the obstacle spawn timer¨
     this.obstacleImages = obstacleImages;
+    this.score = 0; // Initialize score
 
+  }
+
+  drawScore() {
+    this.ctx.font = '20px Arial';
+    this.ctx.fillStyle = 'white';
+    this.ctx.fillText(`Score: ${this.score}`, 10, 30); // Position top-left
   }
 
   // Method to add an obstacle
@@ -79,14 +86,17 @@ class Game {
 
   checkCollisions() {
     this.obstacles.forEach(obstacle => {
-      if (this.isColliding(this.cat, obstacle)) {
-        // Collision detected, handle it here (e.g., reduce life)
-        console.log("Collision detected!");
-        this.triggerGameOver();
+      if (this.isColliding(this.cat, obstacle) && !obstacle.collided) {
+        obstacle.collided = true; // Mark the obstacle as collided
+        if (this.cat.loseLife()) {
+          this.triggerGameOver();
+        } else {
+          console.log("Hit detected, life lost.");
+          this.cat.flash(); // Trigger the flash effect
+        }
       }
     });
   }
-
   isColliding(cat, obstacle) {
     const catRect = {
       left: cat.x + cat.hitbox.x,
@@ -109,10 +119,10 @@ class Game {
   }
 
   triggerGameOver() {
-    if (!this.gameOver) { // Check to ensure this runs only once
+    if (!this.gameOver) {
       this.gameOver = true;
-      this.stop(); // Stop the game loop
-      alert("Game Over!"); // Display an alert
+      this.stop();
+      alert("Game Over!"); // Display an alert for game over
     }
   }
 
@@ -129,27 +139,19 @@ class Game {
 
   stop() {
     this.isRunning = false;
-    clearTimeout(this.obstacleTimeout); // Clear the obstacle spawning timeout
+    clearTimeout(this.obstacleTimeout);
     cancelAnimationFrame(this.animationFrameId);
   }
 
 
   renderInitialState() {
-    // Clear the canvas
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-    // Draw each background layer
     this.layers.forEach(layer => layer.draw());
-    // Draw the cat in its current frame
     this.cat.draw();
-    // Call update on the cat to change its frame for the animation
     this.cat.update();
-    // Update and draw obstacles
     this.obstacles.forEach(obstacle => obstacle.update());
     this.obstacles.forEach(obstacle => obstacle.draw());
-    // Remove off-screen obstacles
     this.obstacles = this.obstacles.filter(obstacle => !obstacle.offScreen());
-
-    // Continue the loop
     this.initialStateAnimationFrameId = requestAnimationFrame(() => this.renderInitialState());
   }
 
@@ -163,16 +165,24 @@ class Game {
     this.layers.forEach(layer => layer.draw());
     this.cat.update();
     this.cat.draw();
-    this.obstacles.forEach(obstacle => obstacle.update());
-    this.obstacles.forEach(obstacle => obstacle.draw());
-    this.obstacles = this.obstacles.filter(obstacle => !obstacle.offScreen());
-    this.checkCollisions()
+
+    // Update and draw obstacles, and check if off-screen
+    for (let i = this.obstacles.length - 1; i >= 0; i--) {
+      const obstacle = this.obstacles[i];
+      obstacle.update();
+      obstacle.draw();
+      if (obstacle.offScreen()) {
+        this.score++; // Increment score for each obstacle that goes off-screen
+        console.log(`Score: ${this.score}`); // Log score
+        this.obstacles.splice(i, 1); // Remove obstacle from array
+      }
+    }
+
+    this.checkCollisions();
+    this.drawScore();
     this.animationFrameId = requestAnimationFrame(() => this.update());
   }
 }
-
-
-
 class Cat {
   constructor(ctx, standSprites, runSprites, jumpSprites) {
     this.ctx = ctx;
@@ -192,17 +202,27 @@ class Cat {
     this.jumpVelocity = 0;
     this.gravity = 0.4; // Gravity could be adjusted
     this.isJumping = false;
-    this.hitbox = { x: 10, y: 5, width: this.width - 20, height: this.height - 10 }
+    this.lives = 3; // Start with 3 lives
+    const initialSprite = standSprites[0];
+    this.hitbox = {
+      x: 12, // Adjust as needed
+      y: 7, // Adjust as needed
+      width: initialSprite.width - 0, // Adjust as needed
+      height: initialSprite.height - 10 // Adjust as needed
+    };
 
+    // HIT ANIMATION ON CAT
+    this.isFlashing = false;
+    this.flashDuration = 1000; // Duration of the flash effect in milliseconds
+    this.flashTimer = 0;
+    this.flashInterval = 100; // Interval at which the sprite visibility toggles during flash
   }
-
   startRunning() {
     if (!this.isJumping) {
       this.currentSprites = this.runSprites;
       this.spriteInterval = this.runSpriteInterval;
     }
   }
-
   jump() {
     if (!this.isJumping) {
       this.isJumping = true;
@@ -212,8 +232,26 @@ class Cat {
     }
   }
 
+  loseLife() {
+    this.lives -= 1;
+    if (this.lives <= 0) {
+      // Trigger game over if no lives left
+      return true;
+    }
+    // Return false to indicate the game should continue
+    return false;
+  }
+
+  flash() {
+    this.isFlashing = true;
+    this.flashTimer = 0;
+  }
+
   update() {
     this.spriteTimer += 16.67; // Approximation of 60 FPS
+
+
+
     if (this.spriteTimer >= this.spriteInterval) {
       this.currentFrame = (this.currentFrame + 1) % this.currentSprites.length;
       this.spriteTimer = 0;
@@ -227,19 +265,32 @@ class Cat {
         this.startRunning(); // Go back to running or standing
       }
     }
+    if (this.isFlashing) {
+      this.flashTimer += 16.67; // Approximation of 60 FPS
+      if (this.flashTimer > this.flashDuration) {
+        this.isFlashing = false;
+      }
+    }
   }
 
   draw() {
     const sprite = this.currentSprites[this.currentFrame];
+
     if (sprite && sprite.complete) {
-      this.ctx.drawImage(sprite, this.x, this.y);
-      // Assuming sprite.width and sprite.height give the dimensions of the current frame
-      this.hitbox = { x: 10, y: 5, width: sprite.width - 20, height: sprite.height - 10 };
-      // Draw hitbox for debugging
-      this.ctx.strokeStyle = 'red';
-      this.ctx.strokeRect(this.x + this.hitbox.x, this.y + this.hitbox.y, this.hitbox.width, this.hitbox.height);
+      // Flash effect logic
+      if (this.isFlashing && Math.floor(this.flashTimer / this.flashInterval) % 2 === 0) {
+        // Skip drawing the sprite for this frame to create a flash effect
+        // Still draw the hitbox for debugging
+
+      } else {
+        // Draw the cat sprite
+        this.ctx.drawImage(sprite, this.x, this.y);
+        // Draw hitbox for debugging
+
+      }
     }
   }
+
 }
 
 class Obstacle {
@@ -253,6 +304,7 @@ class Obstacle {
     this.height = this.image.height * this.scale;
     this.speed = 2.5;
     this.hitbox = { x: 5, y: 5, width: this.width - 10, height: this.height - 10 }; // Example values, adjust as needed
+    this.collided = false;
   }
 
   update() {
@@ -261,9 +313,8 @@ class Obstacle {
 
   draw() {
     this.ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
-    this.ctx.strokeStyle = 'blue';
-    this.ctx.strokeRect(this.x + this.hitbox.x, this.y + this.hitbox.y, this.hitbox.width, this.hitbox.height);
-
+    this.hitbox = { x: 0, y: 0, width: this.width, height: this.height };
+    //Hitbox
   }
 
   offScreen() {
