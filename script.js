@@ -388,8 +388,6 @@ class Obstacle {
   draw() {
     this.ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
     this.hitbox = { x: 0, y: 0, width: this.width, height: this.height };
-
-
   }
 
   offScreen() {
