@@ -77,7 +77,44 @@ class Game {
     }, interval);
   }
 
+  checkCollisions() {
+    this.obstacles.forEach(obstacle => {
+      if (this.isColliding(this.cat, obstacle)) {
+        // Collision detected, handle it here (e.g., reduce life)
+        console.log("Collision detected!");
+        this.triggerGameOver();
+      }
+    });
+  }
 
+  isColliding(cat, obstacle) {
+    const catRect = {
+      left: cat.x + cat.hitbox.x,
+      right: cat.x + cat.hitbox.x + cat.hitbox.width,
+      top: cat.y + cat.hitbox.y,
+      bottom: cat.y + cat.hitbox.y + cat.hitbox.height
+    };
+    const obstacleRect = {
+      left: obstacle.x + obstacle.hitbox.x,
+      right: obstacle.x + obstacle.hitbox.x + obstacle.hitbox.width,
+      top: obstacle.y + obstacle.hitbox.y,
+      bottom: obstacle.y + obstacle.hitbox.y + obstacle.hitbox.height
+    };
+
+    // Check for intersection
+    return !(catRect.right < obstacleRect.left ||
+      catRect.left > obstacleRect.right ||
+      catRect.bottom < obstacleRect.top ||
+      catRect.top > obstacleRect.bottom);
+  }
+
+  triggerGameOver() {
+    if (!this.gameOver) { // Check to ensure this runs only once
+      this.gameOver = true;
+      this.stop(); // Stop the game loop
+      alert("Game Over!"); // Display an alert
+    }
+  }
 
   setCat(cat) {
     this.cat = cat;
@@ -119,6 +156,7 @@ class Game {
 
   update() {
     if (!this.isRunning) return;
+    if (this.gameOver) return;
 
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     this.layers.forEach(layer => layer.update());
@@ -128,6 +166,7 @@ class Game {
     this.obstacles.forEach(obstacle => obstacle.update());
     this.obstacles.forEach(obstacle => obstacle.draw());
     this.obstacles = this.obstacles.filter(obstacle => !obstacle.offScreen());
+    this.checkCollisions()
     this.animationFrameId = requestAnimationFrame(() => this.update());
   }
 }
@@ -153,6 +192,7 @@ class Cat {
     this.jumpVelocity = 0;
     this.gravity = 0.4; // Gravity could be adjusted
     this.isJumping = false;
+    this.hitbox = { x: 10, y: 5, width: this.width - 20, height: this.height - 10 }
 
   }
 
@@ -193,13 +233,17 @@ class Cat {
     const sprite = this.currentSprites[this.currentFrame];
     if (sprite && sprite.complete) {
       this.ctx.drawImage(sprite, this.x, this.y);
-
+      // Assuming sprite.width and sprite.height give the dimensions of the current frame
+      this.hitbox = { x: 10, y: 5, width: sprite.width - 20, height: sprite.height - 10 };
+      // Draw hitbox for debugging
+      this.ctx.strokeStyle = 'red';
+      this.ctx.strokeRect(this.x + this.hitbox.x, this.y + this.hitbox.y, this.hitbox.width, this.hitbox.height);
     }
   }
 }
 
 class Obstacle {
-  constructor(ctx, image, x, y, scale = 1) {
+  constructor(ctx, image, x, y, scale) {
     this.ctx = ctx;
     this.image = image;
     this.x = x;
@@ -207,7 +251,8 @@ class Obstacle {
     this.scale = scale;
     this.width = this.image.width * this.scale;
     this.height = this.image.height * this.scale;
-    this.speed = 2.5; // Or any other speed you prefer
+    this.speed = 2.5;
+    this.hitbox = { x: 5, y: 5, width: this.width - 10, height: this.height - 10 }; // Example values, adjust as needed
   }
 
   update() {
@@ -216,6 +261,9 @@ class Obstacle {
 
   draw() {
     this.ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+    this.ctx.strokeStyle = 'blue';
+    this.ctx.strokeRect(this.x + this.hitbox.x, this.y + this.hitbox.y, this.hitbox.width, this.hitbox.height);
+
   }
 
   offScreen() {
