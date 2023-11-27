@@ -46,10 +46,14 @@ class Game {
     this.layers = layers;
     this.isRunning = false;
     this.animationFrameId = null;
-    this.obstacles = []; // Initialize the obstacles array
-    this.obstacleTimeout = null; // For managing the obstacle spawn timer¨
+    // Obstacles
+    this.obstacles = [];
+    this.obstacleTimeout = null;
     this.obstacleImages = obstacleImages;
-    this.score = 0; // Initialize score
+    // Score & Timer
+    this.score = 0;
+    this.startTime = null;
+    this.elapsedTime = 0;
 
   }
 
@@ -122,8 +126,36 @@ class Game {
     if (!this.gameOver) {
       this.gameOver = true;
       this.stop();
-      alert("Game Over!"); // Display an alert for game over
+      this.elapsedTime = Date.now() - this.startTime;
+      this.drawGameOverBox();
+      cancelAnimationFrame(this.initialStateAnimationFrameId);
     }
+  }
+
+  drawGameOverBox() {
+    const centerX = this.ctx.canvas.width / 2;
+    const centerY = this.ctx.canvas.height / 2;
+    const boxWidth = 400;
+    const boxHeight = 200;
+    const timePlayed = this.formatTime(this.elapsedTime);
+
+    // Draw box
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    this.ctx.fillRect(centerX - boxWidth / 2, centerY - boxHeight / 2, boxWidth, boxHeight);
+
+    // Draw text
+    this.ctx.fillStyle = 'white';
+    this.ctx.font = '24px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText(`Game Over, your score was ${this.score}`, centerX, centerY - 30);
+    this.ctx.fillText(`Time played: ${timePlayed}`, centerX, centerY + 10);
+  }
+
+  formatTime(milliseconds) {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}m ${seconds}s`;
   }
 
   setCat(cat) {
@@ -135,6 +167,7 @@ class Game {
     this.cat.startRunning(); // Change to running animation
     this.scheduleNextObstacle(); // Start scheduling obstacles
     this.update();
+    this.startTime = Date.now();
   }
 
   stop() {
@@ -157,10 +190,10 @@ class Game {
 
 
   update() {
-    if (!this.isRunning) return;
-    if (this.gameOver) return;
+    if (!this.isRunning || this.gameOver) return;
 
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+
     this.layers.forEach(layer => layer.update());
     this.layers.forEach(layer => layer.draw());
     this.cat.update();
