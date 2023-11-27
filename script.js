@@ -41,24 +41,25 @@ class BackgroundLayer {
 // ... Keep the rest of the classes and functions as they were ...
 
 class Game {
-  constructor(ctx, layers) {
+  constructor(ctx, layers, obstacleImages) {
     this.ctx = ctx;
     this.layers = layers;
     this.isRunning = false;
     this.animationFrameId = null;
     this.obstacles = []; // Initialize the obstacles array
-    this.obstacleTimeout = null; // For managing the obstacle spawn timer
+    this.obstacleTimeout = null; // For managing the obstacle spawn timer¨
+    this.obstacleImages = obstacleImages;
 
   }
 
   // Method to add an obstacle
   addObstacle() {
-    const obstacleHeight = 50; // Example height
-    const obstacleWidth = 20;  // Example width
-    const obstacleX = this.ctx.canvas.width; // Start at the right edge of the canvas
-    const obstacleY = this.ctx.canvas.height - obstacleHeight; // Align with the bottom of the canvas
+    const image = this.obstacleImages[Math.floor(Math.random() * this.obstacleImages.length)];
+    const scale = 1; // Example scale
+    const obstacleX = this.ctx.canvas.width;
+    const obstacleY = this.ctx.canvas.height - image.height * scale;
 
-    const obstacle = new Obstacle(this.ctx, obstacleX, obstacleY, obstacleWidth, obstacleHeight);
+    const obstacle = new Obstacle(this.ctx, image, obstacleX, obstacleY, scale);
     this.obstacles.push(obstacle);
   }
 
@@ -126,9 +127,7 @@ class Game {
     this.cat.draw();
     this.obstacles.forEach(obstacle => obstacle.update());
     this.obstacles.forEach(obstacle => obstacle.draw());
-
     this.obstacles = this.obstacles.filter(obstacle => !obstacle.offScreen());
-
     this.animationFrameId = requestAnimationFrame(() => this.update());
   }
 }
@@ -145,8 +144,8 @@ class Cat {
     this.currentFrame = 0;
     this.spriteTimer = 0;
     this.standSpriteInterval = 200; // Interval for standing
-    this.runSpriteInterval = 100; // Interval for running, can be different
-    this.jumpSpriteInterval = 100
+    this.runSpriteInterval = 200; // Interval for running, can be different
+    this.jumpSpriteInterval = 200
     this.spriteInterval = this.standSpriteInterval;
     this.x = 450; // Starting x position
     this.y = canvas.height - 50; // Starting y position (adjust as needed)
@@ -200,13 +199,15 @@ class Cat {
 }
 
 class Obstacle {
-  constructor(ctx, x, y, width, height) {
+  constructor(ctx, image, x, y, scale = 1) {
     this.ctx = ctx;
+    this.image = image;
     this.x = x;
     this.y = y;
-    this.width = width;
-    this.height = height;
-    this.speed = 5; // Speed at which the obstacle moves towards the cat
+    this.scale = scale;
+    this.width = this.image.width * this.scale;
+    this.height = this.image.height * this.scale;
+    this.speed = 2.5; // Or any other speed you prefer
   }
 
   update() {
@@ -214,8 +215,7 @@ class Obstacle {
   }
 
   draw() {
-    this.ctx.fillStyle = 'black';
-    this.ctx.fillRect(this.x, this.y, this.width, this.height);
+    this.ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
   }
 
   offScreen() {
@@ -285,17 +285,18 @@ function startGame() {
     loadImages(parallaxBackgroundPaths),
     loadImages(standSpritePaths),
     loadImages(runningSpritePaths),
-    loadImages(jumpingSpritePaths)
-  ]).then(([backgroundImages, standSprites, runSprites, jumpSprites]) => {
+    loadImages(jumpingSpritePaths),
+    loadImages(obstacleSpritePaths)
+  ]).then(([backgroundImages, standSprites, runSprites, jumpSprites, obstacleImages]) => {
     console.log('All images loaded successfully.');
     const layers = backgroundImages.map((image, index) => {
       let layerHeight = index === 0 ? ctx.canvas.height : 351;
-      const speed = 3 + index * 0.5;
+      const speed = 2.5 + index * 0.5;
       return new BackgroundLayer(ctx, image, speed, layerHeight);
     });
 
     const cat = new Cat(ctx, standSprites, runSprites, jumpSprites);
-    game = new Game(ctx, layers);
+    const game = new Game(ctx, layers, obstacleImages);
     game.setCat(cat);
     game.renderInitialState();
 
