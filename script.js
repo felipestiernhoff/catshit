@@ -91,8 +91,10 @@ class Game {
 
   stop() {
     this.isRunning = false;
+    clearTimeout(this.obstacleTimeout); // Clear the obstacle spawning timeout
     cancelAnimationFrame(this.animationFrameId);
   }
+
 
   renderInitialState() {
     // Clear the canvas
@@ -120,9 +122,12 @@ class Game {
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     this.layers.forEach(layer => layer.update());
     this.layers.forEach(layer => layer.draw());
-
     this.cat.update();
     this.cat.draw();
+    this.obstacles.forEach(obstacle => obstacle.update());
+    this.obstacles.forEach(obstacle => obstacle.draw());
+
+    this.obstacles = this.obstacles.filter(obstacle => !obstacle.offScreen());
 
     this.animationFrameId = requestAnimationFrame(() => this.update());
   }
