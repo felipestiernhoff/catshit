@@ -1,0 +1,5 @@
+@font-face {
+  font-family: 'gameFont';
+  /* Assign a name to your font */
+  src: url('/font/pokemon-rs.ttf') format('truetype');
+}

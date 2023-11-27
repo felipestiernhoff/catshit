@@ -55,12 +55,20 @@ class Game {
     this.startTime = null;
     this.elapsedTime = 0;
 
+    canvas.addEventListener('click', (event) => {
+      if (this.gameOver) {
+        this.handleGameOverClick(event);
+      }
+    });
+
   }
 
   drawScore() {
-    this.ctx.font = '20px Arial';
-    this.ctx.fillStyle = 'white';
-    this.ctx.fillText(`Score: ${this.score}`, 10, 30); // Position top-left
+    if (!this.gameOver) {
+      this.ctx.font = '20px gameFont';
+      this.ctx.fillStyle = 'white';
+      this.ctx.fillText(`Score: ${this.score}`, 10, 30); // Position top-left
+    }
   }
 
   // Method to add an obstacle
@@ -132,6 +140,26 @@ class Game {
     }
   }
 
+  handleGameOverClick(event) {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Check if the click is within the retry button bounds
+    if (x > this.retryButton.x && x < this.retryButton.x + this.retryButton.width &&
+      y > this.retryButton.y && y < this.retryButton.y + this.retryButton.height) {
+      this.restartGame();
+    }
+  }
+
+  restartGame() {
+    this.obstacles = [];
+    this.score = 0;
+    this.cat.lives = 3; // Reset cat lives
+    this.gameOver = false;
+    this.start();
+  }
+
   drawGameOverBox() {
     const centerX = this.ctx.canvas.width / 2;
     const centerY = this.ctx.canvas.height / 2;
@@ -145,10 +173,23 @@ class Game {
 
     // Draw text
     this.ctx.fillStyle = 'white';
-    this.ctx.font = '24px Arial';
+    this.ctx.font = 'gameFont';
     this.ctx.textAlign = 'center';
     this.ctx.fillText(`Game Over, your score was ${this.score}`, centerX, centerY - 30);
     this.ctx.fillText(`Time played: ${timePlayed}`, centerX, centerY + 10);
+
+    // Draw Retry button
+    const buttonWidth = 100;
+    const buttonHeight = 40;
+    this.retryButton = { x: centerX - buttonWidth / 2, y: centerY + 50, width: buttonWidth, height: buttonHeight };
+
+    this.ctx.fillStyle = 'white';
+    this.ctx.fillRect(this.retryButton.x, this.retryButton.y, this.retryButton.width, this.retryButton.height);
+
+    this.ctx.fillStyle = 'black';
+    this.ctx.fillText('Retry', this.retryButton.x + buttonWidth / 2, this.retryButton.y + buttonHeight / 2 + 5);
+
+
   }
 
   formatTime(milliseconds) {
@@ -347,7 +388,7 @@ class Obstacle {
   draw() {
     this.ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
     this.hitbox = { x: 0, y: 0, width: this.width, height: this.height };
-    //Hitbox
+
   }
 
   offScreen() {
@@ -367,8 +408,8 @@ function startGame() {
 
   const parallaxBackgroundPaths = [
     '/sprites/background/enchanted_background2.png',
-    '/sprites/background/blackPyramids.png',
     '/sprites/background/grey_pyramids.png',
+    '/sprites/background/blackPyramids.png',
     '/sprites/background/front_pyramids.png',
   ];
 
@@ -420,12 +461,14 @@ function startGame() {
     loadImages(jumpingSpritePaths),
     loadImages(obstacleSpritePaths)
   ]).then(([backgroundImages, standSprites, runSprites, jumpSprites, obstacleImages]) => {
+    const layerSpeeds = [4, 1.2, 1.8, 4];
     console.log('All images loaded successfully.');
     const layers = backgroundImages.map((image, index) => {
       let layerHeight = index === 0 ? ctx.canvas.height : 351;
-      const speed = 2.5 + index * 0.5;
+      const speed = layerSpeeds[index]; // Use speed from the array
       return new BackgroundLayer(ctx, image, speed, layerHeight);
     });
+
 
     const cat = new Cat(ctx, standSprites, runSprites, jumpSprites);
     const game = new Game(ctx, layers, obstacleImages);
@@ -444,8 +487,6 @@ function startGame() {
     startButton.addEventListener('click', () => {
       game.start();
       startButton.style.display = 'none';
-      console.log("game", game)
-
     });
   }).catch(error => {
     console.error('Error loading images:', error);
