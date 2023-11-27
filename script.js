@@ -11,6 +11,21 @@ function loadImages(imagePaths) {
   }));
 }
 
+function loadHeartImage(heartPath) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      console.log(`Heart image loaded: ${heartPath}`);
+      resolve(img);
+    };
+    img.onerror = () => {
+      console.error('Failed to load heart image');
+      reject(new Error(`Failed to load image at path: ${heartPath}`));
+    };
+    img.src = heartPath;
+  });
+}
+
 class BackgroundLayer {
   constructor(ctx, image, speed, height = ctx.canvas.height) {
     this.ctx = ctx;
@@ -63,11 +78,27 @@ class Game {
 
   }
 
-  drawScore() {
+  drawScoreAndLives() {
     if (!this.gameOver) {
+      // Score text
       this.ctx.font = '20px gameFont';
       this.ctx.fillStyle = 'white';
       this.ctx.fillText(`Score: ${this.score}`, 10, 30); // Position top-left
+
+
+      this.drawLives()
+    }
+  }
+
+  drawLives() {
+    // Assuming you have a heart image loaded in this.heartImage
+    const heartWidth = 30; // Width of the heart image
+    const heartHeight = 30; // Height of the heart image
+    const spacing = 5; // Space between hearts
+    for (let i = 0; i < this.cat.lives; i++) {
+      // Draw the heart image with a defined width and height
+      // Calculate the x position to include spacing
+      this.ctx.drawImage(this.heartImage, 200 + (i * (heartWidth + spacing)), 10, heartWidth, heartHeight);
     }
   }
 
@@ -253,7 +284,7 @@ class Game {
     }
 
     this.checkCollisions();
-    this.drawScore();
+    this.drawScoreAndLives()
     this.animationFrameId = requestAnimationFrame(() => this.update());
   }
 }
@@ -448,10 +479,8 @@ function startGame() {
   ];
 
 
-  console.log('Starting to load images...');
 
-  let game;
-  console.log("game", game)
+  console.log('Starting to load images...');
 
   // Use Promise.all to load all image assets in parallel
   Promise.all([
@@ -459,8 +488,16 @@ function startGame() {
     loadImages(standSpritePaths),
     loadImages(runningSpritePaths),
     loadImages(jumpingSpritePaths),
-    loadImages(obstacleSpritePaths)
-  ]).then(([backgroundImages, standSprites, runSprites, jumpSprites, obstacleImages]) => {
+    loadImages(obstacleSpritePaths),
+    loadHeartImage('/sprites/blackheart.png') // Correct path and file extension
+  ]).then(([
+    backgroundImages,
+    standSprites,
+    runSprites,
+    jumpSprites,
+    obstacleImages,
+    heartImage // This now comes from the Promise.all
+  ]) => {
     const layerSpeeds = [4, 1.2, 1.8, 4];
     console.log('All images loaded successfully.');
     const layers = backgroundImages.map((image, index) => {
@@ -469,11 +506,13 @@ function startGame() {
       return new BackgroundLayer(ctx, image, speed, layerHeight);
     });
 
-
     const cat = new Cat(ctx, standSprites, runSprites, jumpSprites);
     const game = new Game(ctx, layers, obstacleImages);
     game.setCat(cat);
     game.renderInitialState();
+    game.heartImage = heartImage;
+
+
 
     // Listen for key press to make the cat jump
     window.addEventListener('keydown', (e) => {
