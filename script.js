@@ -46,20 +46,46 @@ class Game {
     this.layers = layers;
     this.isRunning = false;
     this.animationFrameId = null;
+    this.obstacles = []; // Initialize the obstacles array
+    this.obstacleTimeout = null; // For managing the obstacle spawn timer
+
   }
+
+  // Method to add an obstacle
+  addObstacle() {
+    const obstacleHeight = 50; // Example height
+    const obstacleWidth = 20;  // Example width
+    const obstacleX = this.ctx.canvas.width; // Start at the right edge of the canvas
+    const obstacleY = this.ctx.canvas.height - obstacleHeight; // Align with the bottom of the canvas
+
+    const obstacle = new Obstacle(this.ctx, obstacleX, obstacleY, obstacleWidth, obstacleHeight);
+    this.obstacles.push(obstacle);
+  }
+
+  // Schedule the next obstacle
+  scheduleNextObstacle() {
+    if (!this.isRunning) return;
+
+    const minInterval = 2000; // Minimum interval in milliseconds (2 seconds)
+    const maxInterval = 5000; // Maximum interval in milliseconds (5 seconds)
+    const interval = Math.random() * (maxInterval - minInterval) + minInterval;
+
+    this.obstacleTimeout = setTimeout(() => {
+      this.addObstacle();
+      this.scheduleNextObstacle(); // Schedule the next one
+    }, interval);
+  }
+
 
 
   setCat(cat) {
     this.cat = cat;
   }
 
-
-
-
-
   start() {
     this.isRunning = true;
     this.cat.startRunning(); // Change to running animation
+    this.scheduleNextObstacle(); // Start scheduling obstacles
     this.update();
   }
 
@@ -69,18 +95,19 @@ class Game {
   }
 
   renderInitialState() {
-
     // Clear the canvas
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-
     // Draw each background layer
     this.layers.forEach(layer => layer.draw());
-
     // Draw the cat in its current frame
     this.cat.draw();
-
     // Call update on the cat to change its frame for the animation
     this.cat.update();
+    // Update and draw obstacles
+    this.obstacles.forEach(obstacle => obstacle.update());
+    this.obstacles.forEach(obstacle => obstacle.draw());
+    // Remove off-screen obstacles
+    this.obstacles = this.obstacles.filter(obstacle => !obstacle.offScreen());
 
     // Continue the loop
     this.initialStateAnimationFrameId = requestAnimationFrame(() => this.renderInitialState());
@@ -141,8 +168,6 @@ class Cat {
     }
   }
 
-
-
   update() {
     this.spriteTimer += 16.67; // Approximation of 60 FPS
     if (this.spriteTimer >= this.spriteInterval) {
@@ -168,6 +193,32 @@ class Cat {
     }
   }
 }
+
+class Obstacle {
+  constructor(ctx, x, y, width, height) {
+    this.ctx = ctx;
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.speed = 5; // Speed at which the obstacle moves towards the cat
+  }
+
+  update() {
+    this.x -= this.speed; // Move the obstacle to the left
+  }
+
+  draw() {
+    this.ctx.fillStyle = 'black';
+    this.ctx.fillRect(this.x, this.y, this.width, this.height);
+  }
+
+  offScreen() {
+    return this.x + this.width < 0; // Check if the obstacle is off-screen
+  }
+}
+
+
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
