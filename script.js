@@ -38,19 +38,14 @@ class BackgroundLayer {
 
 }
 
-
-
 // ... Keep the rest of the classes and functions as they were ...
 
 class Game {
-  constructor(ctx, layers, obstacleImages) {
+  constructor(ctx, layers) {
     this.ctx = ctx;
     this.layers = layers;
     this.isRunning = false;
     this.animationFrameId = null;
-    this.obstacleIntervalId = null; // Store the interval ID here
-    this.obstacles = [];
-    this.obstacleImages = obstacleImages; // Store the obstacle images
   }
 
 
@@ -59,32 +54,18 @@ class Game {
   }
 
 
-  addRandomObstacle() {
-    // Randomly choose an obstacle image
-    const image = this.obstacleImages[Math.floor(Math.random() * this.obstacleImages.length)];
-    const scale = 0.5; // Make sure scale is defined
-    const obstacleYPosition = this.ctx.canvas.height - (image.height * this.scale);
-    const obstacleXPosition = this.ctx.canvas.width;
-    const obstacle = new Obstacle(this.ctx, image, this.ctx.canvas.width, obstacleYPosition, scale);
-    this.obstacles.push(obstacle);
-  }
+
 
 
   start() {
     this.isRunning = true;
     this.cat.startRunning(); // Change to running animation
     this.update();
-
-    // Set up an interval to add new obstacles
-    this.obstacleIntervalId = setInterval(() => {
-      this.addRandomObstacle();
-    }, 2000); // Spawn an obstacle every 2000 ms (2 seconds)
   }
 
   stop() {
     this.isRunning = false;
     cancelAnimationFrame(this.animationFrameId);
-    clearInterval(this.obstacleIntervalId); // Clear the interval when the game stops
   }
 
   renderInitialState() {
@@ -109,22 +90,9 @@ class Game {
   update() {
     if (!this.isRunning) return;
 
-    const now = Date.now();
-    if (now - this.lastObstacleTime > this.obstacleSpawnRate) {
-      this.addRandomObstacle();
-      this.lastObstacleTime = now;
-    }
-
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     this.layers.forEach(layer => layer.update());
     this.layers.forEach(layer => layer.draw());
-
-    console.log(`Obstacles before filter: ${this.obstacles.length}`);
-    this.obstacles.forEach(obstacle => obstacle.update());
-    this.obstacles = this.obstacles.filter(obstacle => !obstacle.offScreen());
-    console.log(`Obstacles after filter: ${this.obstacles.length}`);
-
-    this.obstacles.forEach(obstacle => obstacle.draw());
 
     this.cat.update();
     this.cat.draw();
@@ -134,53 +102,46 @@ class Game {
 }
 
 
-class Obstacle {
-  constructor(ctx, image, x, y, scale) {
-    this.ctx = ctx;
-    this.image = image;
-    this.x = x;
-    this.y = y;
-    this.scale = scale;
-    this.width = image.width
-    this.height = image.height
-  }
-
-  update() {
-    this.x -= 0;
-  }
-
-  draw() {
-    this.ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
-    // Draw a border around the obstacle
-    this.ctx.strokeStyle = 'blue';
-    this.ctx.strokeRect(this.x, this.y, this.width, this.height);
-  }
-  offScreen() {
-    // This function checks if the obstacle is off-screen and can be removed
-    return this.x + this.width < 0;
-  }
-}
-
 
 class Cat {
-  constructor(ctx, standSprites, runSprites) {
+  constructor(ctx, standSprites, runSprites, jumpSprites) {
     this.ctx = ctx;
     this.standSprites = standSprites;
     this.runSprites = runSprites;
-    this.currentSprites = standSprites; // Initially the cat is standing
+    this.jumpSprites = jumpSprites
+    this.currentSprites = standSprites;
     this.currentFrame = 0;
     this.spriteTimer = 0;
     this.standSpriteInterval = 200; // Interval for standing
     this.runSpriteInterval = 100; // Interval for running, can be different
+    this.jumpSpriteInterval = 100
     this.spriteInterval = this.standSpriteInterval;
     this.x = 450; // Starting x position
     this.y = canvas.height - 50; // Starting y position (adjust as needed)
+    this.groundY = this.y
+    this.jumpVelocity = 0;
+    this.gravity = 0.4; // Gravity could be adjusted
+    this.isJumping = false;
+
   }
 
   startRunning() {
-    this.currentSprites = this.runSprites;
-    this.spriteInterval = this.runSpriteInterval;
+    if (!this.isJumping) {
+      this.currentSprites = this.runSprites;
+      this.spriteInterval = this.runSpriteInterval;
+    }
   }
+
+  jump() {
+    if (!this.isJumping) {
+      this.isJumping = true;
+      this.currentSprites = this.jumpSprites;
+      this.spriteInterval = this.jumpSpriteInterval;
+      this.jumpVelocity = -12; // This will make the cat move upwards initially
+    }
+  }
+
+
 
   update() {
     this.spriteTimer += 16.67; // Approximation of 60 FPS
@@ -188,15 +149,22 @@ class Cat {
       this.currentFrame = (this.currentFrame + 1) % this.currentSprites.length;
       this.spriteTimer = 0;
     }
+    if (this.isJumping) {
+      this.y += this.jumpVelocity;
+      this.jumpVelocity += this.gravity;
+      if (this.y > this.groundY) { // Cat has landed
+        this.y = this.groundY;
+        this.isJumping = false;
+        this.startRunning(); // Go back to running or standing
+      }
+    }
   }
 
   draw() {
     const sprite = this.currentSprites[this.currentFrame];
     if (sprite && sprite.complete) {
       this.ctx.drawImage(sprite, this.x, this.y);
-      // Draw a border around the cat
-      this.ctx.strokeStyle = 'red';
-      this.ctx.strokeRect(this.x, this.y, sprite.width, sprite.height);
+
     }
   }
 }
@@ -234,10 +202,20 @@ function startGame() {
     '/sprites/run/cat008.png'
   ];
 
-  const obstacleImagePath = [
+  const obstacleSpritePaths = [
     '/sprites/obstacles/tomb1.png',
     '/sprites/obstacles/tomb2.png',
     '/sprites/obstacles/tomb3.png',
+  ];
+
+  const jumpingSpritePaths = [
+    '/sprites/jump/catJumping1.png',
+    '/sprites/jump/catJumping2.png',
+    '/sprites/jump/catJumping3.png',
+    '/sprites/jump/catJumping4.png',
+    '/sprites/jump/catJumping5.png',
+    '/sprites/jump/catJumping6.png',
+    '/sprites/jump/catJumping7.png',
   ];
 
 
@@ -251,8 +229,8 @@ function startGame() {
     loadImages(parallaxBackgroundPaths),
     loadImages(standSpritePaths),
     loadImages(runningSpritePaths),
-    loadImages(obstacleImagePath)
-  ]).then(([backgroundImages, standSprites, runSprites, obstacleImages]) => {
+    loadImages(jumpingSpritePaths)
+  ]).then(([backgroundImages, standSprites, runSprites, jumpSprites]) => {
     console.log('All images loaded successfully.');
     const layers = backgroundImages.map((image, index) => {
       let layerHeight = index === 0 ? ctx.canvas.height : 351;
@@ -260,10 +238,17 @@ function startGame() {
       return new BackgroundLayer(ctx, image, speed, layerHeight);
     });
 
-    const cat = new Cat(ctx, standSprites, runSprites);
-    game = new Game(ctx, layers, obstacleImages);
+    const cat = new Cat(ctx, standSprites, runSprites, jumpSprites);
+    game = new Game(ctx, layers);
     game.setCat(cat);
     game.renderInitialState();
+
+    // Listen for key press to make the cat jump
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        game.cat.jump();
+      }
+    });
 
     // Setup the start button logic
     const startButton = document.getElementById('startButton');
