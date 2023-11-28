@@ -438,44 +438,44 @@ function startGame() {
 
 
   const parallaxBackgroundPaths = [
-    '/sprites/background/enchanted_background2.png',
-    '/sprites/background/grey_pyramids.png',
-    '/sprites/background/blackPyramids.png',
-    '/sprites/background/front_pyramids.png',
+    'sprites/background/enchanted_background2.png',
+    'sprites/background/grey_pyramids.png',
+    'sprites/background/blackPyramids.png',
+    'sprites/background/front_pyramids.png',
   ];
 
   const standSpritePaths = [
-    '/sprites/stand/catStanding1.png',
-    '/sprites/stand/catStanding2.png',
-    '/sprites/stand/catStanding3.png',
-    '/sprites/stand/catStanding4.png'
+    'sprites/stand/catStanding1.png',
+    'sprites/stand/catStanding2.png',
+    'sprites/stand/catStanding3.png',
+    'sprites/stand/catStanding4.png'
   ];
 
   const runningSpritePaths = [
-    '/sprites/run/cat001.png',
-    '/sprites/run/cat002.png',
-    '/sprites/run/cat003.png',
-    '/sprites/run/cat004.png',
-    '/sprites/run/cat005.png',
-    '/sprites/run/cat006.png',
-    '/sprites/run/cat007.png',
-    '/sprites/run/cat008.png'
+    'sprites/run/cat001.png',
+    'sprites/run/cat002.png',
+    'sprites/run/cat003.png',
+    'sprites/run/cat004.png',
+    'sprites/run/cat005.png',
+    'sprites/run/cat006.png',
+    'sprites/run/cat007.png',
+    'sprites/run/cat008.png'
   ];
 
   const obstacleSpritePaths = [
-    '/sprites/obstacles/tomb1.png',
-    '/sprites/obstacles/tomb2.png',
-    '/sprites/obstacles/tomb3.png',
+    'sprites/obstacles/tomb1.png',
+    'sprites/obstacles/tomb2.png',
+    'sprites/obstacles/tomb3.png',
   ];
 
   const jumpingSpritePaths = [
-    '/sprites/jump/catJumping1.png',
-    '/sprites/jump/catJumping2.png',
-    '/sprites/jump/catJumping3.png',
-    '/sprites/jump/catJumping4.png',
-    '/sprites/jump/catJumping5.png',
-    '/sprites/jump/catJumping6.png',
-    '/sprites/jump/catJumping7.png',
+    'sprites/jump/catJumping1.png',
+    'sprites/jump/catJumping2.png',
+    'sprites/jump/catJumping3.png',
+    'sprites/jump/catJumping4.png',
+    'sprites/jump/catJumping5.png',
+    'sprites/jump/catJumping6.png',
+    'sprites/jump/catJumping7.png',
   ];
 
 
@@ -489,7 +489,7 @@ function startGame() {
     loadImages(runningSpritePaths),
     loadImages(jumpingSpritePaths),
     loadImages(obstacleSpritePaths),
-    loadHeartImage('/sprites/blackheart.png') // Correct path and file extension
+    loadHeartImage('sprites/blackheart.png') // Correct path and file extension
   ]).then(([
     backgroundImages,
     standSprites,
