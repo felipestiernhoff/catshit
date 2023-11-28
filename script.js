@@ -1,3 +1,8 @@
+//WEB3 MODAL
+
+
+//WEB3 MODAL END
+
 function loadImages(imagePaths) {
   return Promise.all(imagePaths.map(path => {
     return new Promise((resolve, reject) => {
@@ -25,6 +30,8 @@ function loadHeartImage(heartPath) {
     img.src = heartPath;
   });
 }
+
+
 
 class BackgroundLayer {
   constructor(ctx, image, speed, height = ctx.canvas.height) {
@@ -80,25 +87,46 @@ class Game {
 
   drawScoreAndLives() {
     if (!this.gameOver) {
+      // Coordinates and dimensions for the background box
+      const boxX = this.ctx.canvas.width / 2 - 150; // Center the box
+      const boxY = 10;
+      const boxWidth = 300;
+      const boxHeight = 40;
+
+      // Draw semi-transparent background box
+      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; // Semi-transparent black
+      this.ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
       // Score text
       this.ctx.font = '20px gameFont';
       this.ctx.fillStyle = 'white';
-      this.ctx.fillText(`Score: ${this.score}`, 10, 30); // Position top-left
+      // Position the text inside the box
+      this.ctx.fillText(`Score: ${this.score}`, boxX + 200, boxY + 25);
 
-
-      this.drawLives()
+      // Draw lives using the drawLives method
+      this.drawLives(boxX, boxY, boxWidth, boxHeight);
     }
   }
 
-  drawLives() {
-    // Assuming you have a heart image loaded in this.heartImage
+  drawLives(boxX, boxY, boxWidth, boxHeight) {
     const heartWidth = 30; // Width of the heart image
     const heartHeight = 30; // Height of the heart image
     const spacing = 5; // Space between hearts
+
+    // Draw the "Lifes:" label aligned to the left within the box
+    this.ctx.font = '20px gameFont';
+    this.ctx.fillStyle = 'white';
+    const text = 'Lifes:';
+    const labelX = boxX + spacing; // Spacing from the left edge of the box
+    this.ctx.fillText('Lifes:', labelX, boxY + 25); // Draw the "Lifes:" label
+
+    const labelWidth = this.ctx.measureText('Lifes:').width; // Measure the width of the label text
+    const startX = labelX + labelWidth + spacing; // Start after the label with some spacing
+
     for (let i = 0; i < this.cat.lives; i++) {
-      // Draw the heart image with a defined width and height
-      // Calculate the x position to include spacing
-      this.ctx.drawImage(this.heartImage, 200 + (i * (heartWidth + spacing)), 10, heartWidth, heartHeight);
+      // Calculate the x position for each heart
+      const heartX = startX + i * (heartWidth + spacing);
+      this.ctx.drawImage(this.heartImage, heartX, boxY + 10, heartWidth, heartHeight);
     }
   }
 
@@ -179,15 +207,36 @@ class Game {
     // Check if the click is within the retry button bounds
     if (x > this.retryButton.x && x < this.retryButton.x + this.retryButton.width &&
       y > this.retryButton.y && y < this.retryButton.y + this.retryButton.height) {
-      this.restartGame();
+      // Refresh the page
+      window.location.reload();
     }
   }
 
   restartGame() {
+    console.log(`Starting Game: Speed: ${Obstacle.speed}, Gravity: ${this.cat.gravity}, JumpVelo: ${this.cat.jumpVelocity}`);
+    // Clear any existing timeouts (e.g., for obstacle generation)
+    clearTimeout(this.obstacleTimeout);
+
+    // Reset game state
     this.obstacles = [];
     this.score = 0;
     this.cat.lives = 3; // Reset cat lives
+    this.cat.isJumping = false; // Make sure to reset jumping state
     this.gameOver = false;
+
+    // Reset positions and velocities if needed
+    this.cat.x = 450; // Reset to initial x position
+    this.cat.y = this.cat.groundY; // Reset to initial y position
+    this.cat.jumpVelocity = 0; // Reset jump velocity
+
+    // Reset the cat to the initial sprites if needed
+    this.cat.currentSprites = this.cat.standSprites;
+    this.cat.currentFrame = 0;
+
+    // Clear the canvas
+    this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+
+    // Start the game again
     this.start();
   }
 
@@ -218,9 +267,7 @@ class Game {
     this.ctx.fillRect(this.retryButton.x, this.retryButton.y, this.retryButton.width, this.retryButton.height);
 
     this.ctx.fillStyle = 'black';
-    this.ctx.fillText('Retry', this.retryButton.x + buttonWidth / 2, this.retryButton.y + buttonHeight / 2 + 5);
-
-
+    this.ctx.fillText('Start Over', this.retryButton.x + buttonWidth / 2, this.retryButton.y + buttonHeight / 2 + 5); // Changed text to 'Start Over'
   }
 
   formatTime(milliseconds) {
@@ -235,6 +282,7 @@ class Game {
   }
 
   start() {
+    console.log(`Starting Game: Speed: ${Obstacle.speed}, Gravity: ${this.cat.gravity}, JumpVelo: ${this.cat.jumpVelocity}`);
     this.isRunning = true;
     this.cat.startRunning(); // Change to running animation
     this.scheduleNextObstacle(); // Start scheduling obstacles
@@ -478,11 +526,8 @@ function startGame() {
     'sprites/jump/catJumping7.png',
   ];
 
-
-
   console.log('Starting to load images...');
 
-  // Use Promise.all to load all image assets in parallel
   Promise.all([
     loadImages(parallaxBackgroundPaths),
     loadImages(standSpritePaths),
@@ -512,16 +557,12 @@ function startGame() {
     game.renderInitialState();
     game.heartImage = heartImage;
 
-
-
-    // Listen for key press to make the cat jump
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
         game.cat.jump();
       }
     });
 
-    // Setup the start button logic
     const startButton = document.getElementById('startButton');
     startButton.addEventListener('click', () => {
       game.start();
@@ -533,4 +574,4 @@ function startGame() {
 }
 
 
-startGame(); // Call startGame to run the game
+startGame(); 
